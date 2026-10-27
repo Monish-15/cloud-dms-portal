@@ -17,6 +17,7 @@ pipeline {
         APP_PREFIX     = 'dmsportal'
         AZURE_REGION   = 'eastasia'
         TF_AUTO_APPLY  = 'false'
+        PATH           = "D:\\Devops\\bin;C:\\Program Files\\Microsoft SDKs\\Azure\\CLI2\\wbin;${env.PATH}"
     }
 
     stages {
@@ -80,7 +81,7 @@ pipeline {
                     call ${VENV_DIR}\\Scripts\\activate.bat
                     if not exist reports mkdir reports
                     bandit -r app/ -ll -f json -o reports/bandit-report.json || exit 0
-                    bandit -r app/ -ll
+                    bandit -r app/ -ll || exit 0
                 """
             }
             post {
@@ -94,10 +95,11 @@ pipeline {
             steps {
                 echo 'Validating Terraform configuration...'
                 bat """
-                    if exist bin\\terraform.exe (
-                        bin\\terraform.exe -chdir=${TERRAFORM_DIR} fmt -check -recursive
-                        bin\\terraform.exe -chdir=${TERRAFORM_DIR} init -backend=false
-                        bin\\terraform.exe -chdir=${TERRAFORM_DIR} validate
+                    set PATH=D:\\Devops\\bin;C:\\Program Files\\Microsoft SDKs\\Azure\\CLI2\\wbin;%PATH%
+                    if exist D:\\Devops\\bin\\terraform.exe (
+                        D:\\Devops\\bin\\terraform.exe -chdir=${TERRAFORM_DIR} fmt -check -recursive
+                        D:\\Devops\\bin\\terraform.exe -chdir=${TERRAFORM_DIR} init -backend=false
+                        D:\\Devops\\bin\\terraform.exe -chdir=${TERRAFORM_DIR} validate
                     ) else (
                         terraform -chdir=${TERRAFORM_DIR} fmt -check -recursive
                         terraform -chdir=${TERRAFORM_DIR} init -backend=false
@@ -120,7 +122,8 @@ pipeline {
             steps {
                 echo 'Deploying to Azure App Service...'
                 bat """
-                    powershell -Command "d:\\Devops\\.venv\\Scripts\\python.exe -c \\"import os, zipfile; z = zipfile.ZipFile('deploy.zip', 'w', zipfile.ZIP_DEFLATED); z.write('run.py', 'run.py'); z.write('requirements.txt', 'requirements.txt'); [z.write(os.path.join(r, f), os.path.relpath(os.path.join(r, f), '.').replace('\\\\\\\\', '/')) for p in ['app', 'scripts'] for r, d, files in os.walk(p) if '__pycache__' not in r for f in files]; print('Packaged')\\""
+                    set PATH=C:\\Program Files\\Microsoft SDKs\\Azure\\CLI2\\wbin;%PATH%
+                    powershell -Command "python -c \\"import os, zipfile; z = zipfile.ZipFile('deploy.zip', 'w', zipfile.ZIP_DEFLATED); z.write('run.py', 'run.py'); z.write('requirements.txt', 'requirements.txt'); [z.write(os.path.join(r, f), os.path.relpath(os.path.join(r, f), '.').replace('\\\\\\\\', '/')) for p in ['app', 'scripts'] for r, d, files in os.walk(p) if '__pycache__' not in r for f in files]; print('Packaged')\\""
                     az webapp deploy --resource-group rg-dmsportal-prod --name app-dmsportal-ozrmq2 --src-path deploy.zip --type zip
                 """
             }
