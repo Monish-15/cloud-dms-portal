@@ -1,0 +1,15 @@
+# Remote Terraform Backend Configuration (Azure Blob Storage)
+# Once you have created an initial bootstrap storage account and container for state:
+# 1. Copy this file to backend.tf
+# 2. Fill in the values below
+# 3. Run: terraform init -reconfigure
+
+# terraform {
+#   backend "azurerm" {
+#     resource_group_name  = "rg-terraform-state"
+#     storage_account_name = "sttfstatedmsportal"
+#     container_name       = "tfstate"
+#     key                  = "docmgmt.prod.terraform.tfstate"
+#     use_azuread_auth     = true
+#   }
+# }

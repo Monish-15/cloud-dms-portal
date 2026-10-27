@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card card-custom p-4 text-center">
+            <div class="bg-primary-subtle text-primary d-inline-flex p-4 rounded-circle mb-3 mx-auto">
+                <i class="bi bi-person fs-1"></i>
+            </div>
+            <h4 class="fw-bold mb-1">{{ current_user.username }}</h4>
+            <p class="text-muted small mb-2">{{ current_user.email }}</p>
+            <div class="mb-3">
+                <span class="badge {% if current_user.is_admin() %}badge-role-admin{% elif current_user.is_editor() %}badge-role-editor{% else %}badge-role-viewer{% endif %} px-3 py-2 rounded-pill">
+                    Role: {{ current_user.role }}
+                </span>
+            </div>
+            <hr>
+            <div class="text-start small text-muted">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Account Status:</span>
+                    <strong class="text-success">Active & Verified</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Account Created:</span>
+                    <span>{{ current_user.created_at.strftime('%Y-%m-%d') }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Last Login:</span>
+                    <span>{{ current_user.last_login_at.strftime('%Y-%m-%d %H:%M UTC') if current_user.last_login_at else 'Just now' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card card-custom">
+            <div class="card-header bg-transparent py-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-clock-history me-2 text-primary"></i> Your Recent Activity</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% if logs %}
+                        {% for log in logs %}
+                        <li class="list-group-item py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge bg-light text-dark border me-2 font-monospace">{{ log.action }}</span>
+                                    <span class="small text-muted">{{ log.details or '' }}</span>
+                                </div>
+                                <span class="small text-muted">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="list-group-item text-center py-4 text-muted">No activity records found.</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

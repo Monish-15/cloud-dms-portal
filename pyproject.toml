@@ -1,0 +1,18 @@
+[project]
+name = "secure-document-portal"
+version = "1.0.0"
+description = "Secure Document Management Portal with Terraform, Jenkins CI/CD, and Microsoft Azure"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E402", "F401", "E501"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+skips = ["B101", "B104"]

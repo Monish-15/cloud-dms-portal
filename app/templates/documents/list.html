@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Document Library{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Document Repository</h2>
+        <p class="text-muted mb-0">Browse, filter, and securely access authorized organizational files</p>
+    </div>
+    {% if current_user.is_admin() or current_user.is_editor() %}
+    <a href="{{ url_for('documents.upload') }}" class="btn btn-primary-custom">
+        <i class="bi bi-cloud-arrow-up me-1"></i> Upload Document
+    </a>
+    {% endif %}
+</div>
+
+<!-- Search & Filter Card -->
+<div class="card card-custom p-3 mb-4">
+    <form method="GET" action="{{ url_for('documents.list_documents') }}" class="row g-3 align-items-center">
+        <div class="col-md-5">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" class="form-control" placeholder="Search by title, description, or filename..." value="{{ current_query }}">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select name="category" class="form-select">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select name="expiry" class="form-select">
+                <option value="all" {% if current_expiry == 'all' %}selected{% endif %}>All Lifecycles</option>
+                <option value="active" {% if current_expiry == 'active' %}selected{% endif %}>Active Only</option>
+                <option value="expiring_soon" {% if current_expiry == 'expiring_soon' %}selected{% endif %}>Expiring Soon</option>
+                <option value="expired" {% if current_expiry == 'expired' %}selected{% endif %}>Expired Only</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary-custom w-100">Filter</button>
+            <a href="{{ url_for('documents.list_documents') }}" class="btn btn-outline-secondary" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Documents Table -->
+<div class="card card-custom">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Title & Filename</th>
+                        <th>Category</th>
+                        <th>Format</th>
+                        <th>Size</th>
+                        <th>Owner</th>
+                        <th>Uploaded (UTC)</th>
+                        <th>Expiry Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if documents %}
+                        {% for doc in documents %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('documents.detail', doc_id=doc.id) }}" class="fw-semibold text-dark text-decoration-none">
+                                    {{ doc.title }}
+                                </a>
+                                <div class="small text-muted font-monospace">{{ doc.original_filename }}</div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">{{ doc.category }}</span></td>
+                            <td><span class="badge bg-secondary-subtle text-secondary text-uppercase">{{ doc.file_type }}</span></td>
+                            <td>{{ doc.formatted_size }}</td>
+                            <td><span class="small text-muted">{{ doc.owner.username }}</span></td>
+                            <td><span class="small text-muted">{{ doc.upload_timestamp.strftime('%Y-%m-%d %H:%M') }}</span></td>
+                            <td>
+                                {% if doc.is_expired %}
+                                    <span class="badge badge-expired"><i class="bi bi-x-circle me-1"></i> Expired</span>
+                                    <div class="small text-muted">{{ doc.expiry_date.strftime('%Y-%m-%d') }}</div>
+                                {% elif doc.is_expiring_soon %}
+                                    <span class="badge badge-expiring"><i class="bi bi-exclamation-triangle me-1"></i> Soon</span>
+                                    <div class="small text-muted">{{ doc.expiry_date.strftime('%Y-%m-%d') }}</div>
+                                {% elif doc.expiry_date %}
+                                    <span class="badge badge-active"><i class="bi bi-check-circle me-1"></i> Active</span>
+                                    <div class="small text-muted">{{ doc.expiry_date.strftime('%Y-%m-%d') }}</div>
+                                {% else %}
+                                    <span class="badge bg-light text-muted border">No Expiry</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('documents.detail', doc_id=doc.id) }}" class="btn btn-outline-secondary" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('documents.download', doc_id=doc.id) }}" class="btn btn-outline-primary" title="Download">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-folder-x fs-1 d-block mb-2"></i>
+                                <h6 class="fw-bold">No documents found</h6>
+                                <p class="small mb-0">No documents matched your criteria or you do not have permissions.</p>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if total_pages > 1 %}
+    <div class="card-footer bg-transparent py-3 d-flex justify-content-between align-items-center">
+        <span class="small text-muted">Showing page {{ page }} of {{ total_pages }} ({{ total_count }} items)</span>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('documents.list_documents', page=page-1, q=current_query, category=current_category, expiry=current_expiry) }}">Previous</a>
+                </li>
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if page == p %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('documents.list_documents', page=p, q=current_query, category=current_category, expiry=current_expiry) }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+                <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('documents.list_documents', page=page+1, q=current_query, category=current_category, expiry=current_expiry) }}">Next</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

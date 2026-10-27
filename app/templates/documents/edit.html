@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Metadata - {{ document.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card card-custom p-4">
+            <h3 class="fw-bold mb-3">Edit Document Metadata</h3>
+            <p class="text-muted small mb-4">Update informational details, categorization, and expiration schedule</p>
+
+            <form method="POST" action="{{ url_for('documents.edit', doc_id=document.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="mb-3">
+                    <label for="title" class="form-label fw-semibold">Document Title</label>
+                    <input type="text" class="form-control" id="title" name="title" value="{{ document.title }}" required>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="category" class="form-label fw-semibold">Category</label>
+                        <select class="form-select" id="category" name="category" required>
+                            {% for cat in categories %}
+                            <option value="{{ cat }}" {% if document.category == cat %}selected{% endif %}>{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="expiry_date" class="form-label fw-semibold">Expiry Date (UTC)</label>
+                        <input type="date" class="form-control" id="expiry_date" name="expiry_date" value="{{ document.expiry_date.strftime('%Y-%m-%d') if document.expiry_date else '' }}">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="description" class="form-label fw-semibold">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="3">{{ document.description or '' }}</textarea>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{{ url_for('documents.detail', doc_id=document.id) }}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary-custom">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

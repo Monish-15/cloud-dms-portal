@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Operational Dashboard</h2>
+        <p class="text-muted mb-0">Overview of repository storage, access metrics, and document compliance</p>
+    </div>
+    {% if current_user.is_admin() or current_user.is_editor() %}
+    <a href="{{ url_for('documents.upload') }}" class="btn btn-primary-custom">
+        <i class="bi bi-cloud-arrow-up me-1"></i> Upload New Document
+    </a>
+    {% endif %}
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small fw-semibold">ACCESSIBLE DOCUMENTS</span>
+                    <h3 class="fw-bold mt-2 mb-0">{{ total_docs }}</h3>
+                </div>
+                <div class="bg-primary-subtle text-primary p-3 rounded-circle">
+                    <i class="bi bi-files fs-3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small fw-semibold">STORAGE CONSUMED</span>
+                    <h3 class="fw-bold mt-2 mb-0">{{ total_storage }}</h3>
+                </div>
+                <div class="bg-info-subtle text-info p-3 rounded-circle">
+                    <i class="bi bi-hdd-stack fs-3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small fw-semibold">EXPIRING SOON (&le; 7 DAYS)</span>
+                    <h3 class="fw-bold mt-2 mb-0 text-warning">{{ expiring_soon_count }}</h3>
+                </div>
+                <div class="bg-warning-subtle text-warning p-3 rounded-circle">
+                    <i class="bi bi-hourglass-split fs-3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small fw-semibold">EXPIRED DOCUMENTS</span>
+                    <h3 class="fw-bold mt-2 mb-0 text-danger">{{ expired_count }}</h3>
+                </div>
+                <div class="bg-danger-subtle text-danger p-3 rounded-circle">
+                    <i class="bi bi-exclamation-octagon fs-3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Expiry Warning Alert Banner -->
+{% if expiring_soon_docs %}
+<div class="alert alert-warning border-warning shadow-sm mb-4">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+        <strong class="fs-6">Attention: Documents Approaching Expiry</strong>
+    </div>
+    <ul class="mb-0 ps-3">
+        {% for doc in expiring_soon_docs %}
+            <li>
+                <a href="{{ url_for('documents.detail', doc_id=doc.id) }}" class="text-dark fw-semibold text-decoration-none">
+                    {{ doc.title }}
+                </a>
+                (Expires: {{ doc.expiry_date.strftime('%Y-%m-%d') }}) &bull; Category: <span class="badge bg-secondary">{{ doc.category }}</span>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <!-- Recent Uploads -->
+    <div class="col-lg-7">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0"><i class="bi bi-clock-history me-2 text-primary"></i> Recent Uploads</h5>
+                <a href="{{ url_for('documents.list_documents') }}" class="small text-decoration-none">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Category</th>
+                                <th>Size</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if recent_uploads %}
+                                {% for doc in recent_uploads %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('documents.detail', doc_id=doc.id) }}" class="fw-semibold text-decoration-none text-dark">
+                                            {{ doc.title }}
+                                        </a>
+                                        <div class="small text-muted">{{ doc.original_filename }}</div>
+                                    </td>
+                                    <td><span class="badge bg-light text-dark border">{{ doc.category }}</span></td>
+                                    <td>{{ doc.formatted_size }}</td>
+                                    <td>
+                                        {% if doc.is_expired %}
+                                            <span class="badge badge-expired">Expired</span>
+                                        {% elif doc.is_expiring_soon %}
+                                            <span class="badge badge-expiring">Expiring Soon</span>
+                                        {% else %}
+                                            <span class="badge badge-active">Active</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{{ url_for('documents.download', doc_id=doc.id) }}" class="btn btn-sm btn-outline-primary" title="Download">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                        No documents found in your library.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Audit Activity -->
+    <div class="col-lg-5">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0"><i class="bi bi-journal-text me-2 text-primary"></i> Activity Log</h5>
+                {% if current_user.is_admin() %}
+                <a href="{{ url_for('admin.audit_logs') }}" class="small text-decoration-none">Full Trail</a>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% if recent_activity %}
+                        {% for log in recent_activity %}
+                        <li class="list-group-item py-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <span class="badge {% if log.outcome == 'SUCCESS' %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %} me-1">
+                                        {{ log.action }}
+                                    </span>
+                                    <div class="small text-muted mt-1">{{ log.details or 'No details provided' }}</div>
+                                </div>
+                                <span class="small text-muted">{{ log.timestamp.strftime('%H:%M %d %b') }}</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="list-group-item text-center py-4 text-muted">
+                            No recent activity recorded.
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

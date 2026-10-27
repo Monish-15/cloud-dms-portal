@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}{{ document.title }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Main Document Details -->
+    <div class="col-lg-8">
+        <div class="card card-custom p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <span class="badge bg-secondary-subtle text-secondary mb-2">{{ document.category }}</span>
+                    <h3 class="fw-bold mb-1">{{ document.title }}</h3>
+                    <div class="text-muted small">Uploaded by <strong>{{ document.owner.username }}</strong> on {{ document.upload_timestamp.strftime('%B %d, %Y at %H:%M UTC') }}</div>
+                </div>
+                <div>
+                    {% if document.is_expired %}
+                        <span class="badge badge-expired fs-6"><i class="bi bi-x-circle me-1"></i> Expired</span>
+                    {% elif document.is_expiring_soon %}
+                        <span class="badge badge-expiring fs-6"><i class="bi bi-exclamation-triangle me-1"></i> Expiring Soon</span>
+                    {% else %}
+                        <span class="badge badge-active fs-6"><i class="bi bi-check-circle me-1"></i> Active</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h6 class="fw-semibold text-muted text-uppercase small">Description</h6>
+                <p class="lead fs-6">{{ document.description or 'No description provided.' }}</p>
+            </div>
+
+            <div class="row g-3 py-3 border-top border-bottom mb-4">
+                <div class="col-sm-6 col-md-3">
+                    <span class="text-muted small d-block">Original Filename</span>
+                    <strong class="font-monospace small">{{ document.original_filename }}</strong>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <span class="text-muted small d-block">File Size</span>
+                    <strong>{{ document.formatted_size }}</strong>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <span class="text-muted small d-block">Format</span>
+                    <span class="text-uppercase fw-semibold">{{ document.file_type }}</span>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <span class="text-muted small d-block">Expiry Date</span>
+                    <strong>{{ document.expiry_date.strftime('%Y-%m-%d') if document.expiry_date else 'None Set' }}</strong>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                <a href="{{ url_for('documents.list_documents') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Library
+                </a>
+                <div class="d-flex gap-2">
+                    {% if can_download %}
+                    <a href="{{ url_for('documents.download', doc_id=document.id) }}" class="btn btn-primary-custom">
+                        <i class="bi bi-download me-1"></i> Download Securely
+                    </a>
+                    {% endif %}
+                    {% if can_edit %}
+                    <a href="{{ url_for('documents.edit', doc_id=document.id) }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-pencil me-1"></i> Edit Metadata
+                    </a>
+                    {% endif %}
+                    {% if can_delete %}
+                    <form method="POST" action="{{ url_for('documents.delete', doc_id=document.id) }}" onsubmit="return confirm('Are you sure you want to permanently delete this document?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="bi bi-trash me-1"></i> Delete
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Permissions & Sharing Sidebar -->
+    <div class="col-lg-4">
+        <div class="card card-custom p-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-shield-check me-2 text-primary"></i> Access Control</h5>
+            
+            <p class="small text-muted mb-3">
+                Granular authorization grants allow designated users or roles to access this private cloud document.
+            </p>
+
+            <h6 class="fw-semibold small text-muted text-uppercase mb-2">Granted Access List</h6>
+            <ul class="list-group list-group-flush mb-4 border rounded">
+                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                    <div>
+                        <strong>{{ document.owner.username }}</strong>
+                        <span class="badge bg-primary ms-1">Owner</span>
+                    </div>
+                    <span class="small text-muted">Full Control</span>
+                </li>
+                {% for perm in document.permissions %}
+                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                    <div>
+                        {% if perm.user %}
+                            <strong>{{ perm.user.username }}</strong> (User)
+                        {% else %}
+                            <span class="badge bg-secondary">{{ perm.role }}</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        {% if perm.can_download %}<i class="bi bi-download text-success" title="Download Enabled"></i>{% endif %}
+                        {% if perm.can_edit %}<i class="bi bi-pencil text-primary ms-2" title="Edit Enabled"></i>{% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+
+            {% if current_user.is_admin() or document.owner_id == current_user.id %}
+            <h6 class="fw-semibold small text-muted text-uppercase mb-2">Grant New Permission</h6>
+            <form method="POST" action="{{ url_for('documents.manage_permissions', doc_id=document.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold">Target Entity</label>
+                    <div class="d-flex gap-3 mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="target_type" id="type_role" value="role" checked onchange="document.getElementById('user_select_div').style.display='none';document.getElementById('role_select_div').style.display='block';">
+                            <label class="form-check-label small" for="type_role">Role-wide</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="target_type" id="type_user" value="user" onchange="document.getElementById('user_select_div').style.display='block';document.getElementById('role_select_div').style.display='none';">
+                            <label class="form-check-label small" for="type_user">Specific User</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-2" id="role_select_div">
+                    <select name="role" class="form-select form-select-sm">
+                        <option value="VIEWER">All Viewers (VIEWER)</option>
+                        <option value="EDITOR">All Editors (EDITOR)</option>
+                        <option value="ALL">All Authenticated Users</option>
+                    </select>
+                </div>
+
+                <div class="mb-2" id="user_select_div" style="display: none;">
+                    <select name="user_id" class="form-select form-select-sm">
+                        <option value="">Select a user...</option>
+                        {% for u in available_users %}
+                            {% if u.id != document.owner_id %}
+                            <option value="{{ u.id }}">{{ u.username }} ({{ u.role }})</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="can_download" id="can_download" checked>
+                        <label class="form-check-label small" for="can_download">Allow Document Download</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="can_edit" id="can_edit">
+                        <label class="form-check-label small" for="can_edit">Allow Metadata Modification</label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-plus-circle me-1"></i> Add Permission
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

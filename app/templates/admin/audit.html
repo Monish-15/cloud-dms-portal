@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Trail{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Security Audit Trail</h2>
+        <p class="text-muted mb-0">Immutable tracking of authentication attempts, document access, and role changes</p>
+    </div>
+    <span class="badge bg-secondary-subtle text-secondary border px-3 py-2">
+        <i class="bi bi-shield-lock me-1"></i> Compliance Log Level: Comprehensive
+    </span>
+</div>
+
+<!-- Audit Filter Form -->
+<div class="card card-custom p-3 mb-4">
+    <form method="GET" action="{{ url_for('admin.audit_logs') }}" class="row g-3 align-items-center">
+        <div class="col-md-4">
+            <select name="action" class="form-select">
+                <option value="">All Security Actions</option>
+                {% for act in actions %}
+                <option value="{{ act }}" {% if current_action == act %}selected{% endif %}>{{ act }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select name="outcome" class="form-select">
+                <option value="">All Outcomes</option>
+                <option value="SUCCESS" {% if current_outcome == 'SUCCESS' %}selected{% endif %}>SUCCESS</option>
+                <option value="FAILURE" {% if current_outcome == 'FAILURE' %}selected{% endif %}>FAILURE</option>
+                <option value="DENIED" {% if current_outcome == 'DENIED' %}selected{% endif %}>DENIED</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <input type="text" name="username" class="form-control" placeholder="Filter by username..." value="{{ current_username }}">
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary-custom w-100">Filter</button>
+            <a href="{{ url_for('admin.audit_logs') }}" class="btn btn-outline-secondary" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Logs Table -->
+<div class="card card-custom">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Timestamp (UTC)</th>
+                        <th>Actor</th>
+                        <th>Action</th>
+                        <th>Outcome</th>
+                        <th>IP Address</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if pagination.items %}
+                        {% for log in pagination.items %}
+                        <tr>
+                            <td><span class="small font-monospace text-muted">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span></td>
+                            <td>
+                                <strong class="small text-dark">{{ log.actor_username or 'System / Unauth' }}</strong>
+                                {% if log.actor_id %}
+                                <span class="badge bg-light text-muted border">ID:{{ log.actor_id }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border font-monospace">{{ log.action }}</span>
+                            </td>
+                            <td>
+                                {% if log.outcome == 'SUCCESS' %}
+                                    <span class="badge bg-success-subtle text-success">SUCCESS</span>
+                                {% elif log.outcome == 'FAILURE' %}
+                                    <span class="badge bg-warning-subtle text-warning">FAILURE</span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger">DENIED</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="small font-monospace text-muted">{{ log.ip_address or '—' }}</span></td>
+                            <td><span class="small text-break">{{ log.details or '—' }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-journal-x fs-1 d-block mb-2"></i>
+                                No audit events found matching the filters.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if pagination.pages > 1 %}
+    <div class="card-footer bg-transparent py-3 d-flex justify-content-between align-items-center">
+        <span class="small text-muted">Page {{ pagination.page }} of {{ pagination.pages }} ({{ pagination.total }} records)</span>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('admin.audit_logs', page=pagination.prev_num, action=current_action, outcome=current_outcome, username=current_username) }}">Previous</a>
+                </li>
+                {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+                    {% if p %}
+                        <li class="page-item {% if pagination.page == p %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin.audit_logs', page=p, action=current_action, outcome=current_outcome, username=current_username) }}">{{ p }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('admin.audit_logs', page=pagination.next_num, action=current_action, outcome=current_outcome, username=current_username) }}">Next</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

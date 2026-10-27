@@ -1,0 +1,39 @@
+# Python
+.venv/
+env/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Database & Uploads
+*.db
+*.sqlite
+uploads/
+tests/test_uploads/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfplan
+*.tfvars
+!terraform.tfvars.example
+
+# Binaries & IDE
+bin/
+.vscode/
+.idea/
+.DS_Store
+*.swp
+.env
+*.zip
+latest_logs/
+app_logs/
