@@ -37,3 +37,4 @@ bin/
 *.zip
 latest_logs/
 app_logs/
+jenkins/
