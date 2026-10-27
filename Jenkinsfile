@@ -1,4 +1,4 @@
-﻿// Jenkinsfile -- Secure Document Management Portal
+// Jenkinsfile -- Secure Document Management Portal
 // Declarative CI/CD Pipeline for GitHub -> Jenkins -> Azure App Service
 // IMPORTANT: This pipeline requires the following Jenkins credentials:
 //   AZURE_CLIENT_ID       : Jenkins service principal App ID
@@ -15,7 +15,6 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '15'))
         timeout(time: 45, unit: 'MINUTES')
         timestamps()
-        ansiColor('xterm')
     }
 
     environment {
