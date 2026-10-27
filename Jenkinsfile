@@ -10,13 +10,17 @@ pipeline {
         timestamps()
     }
 
+    triggers {
+        pollSCM('H/2 * * * *')
+    }
+
     environment {
         PYTHON_BIN     = 'python'
         VENV_DIR       = '.venv'
         TERRAFORM_DIR  = 'terraform'
         APP_PREFIX     = 'dmsportal'
         AZURE_REGION   = 'eastasia'
-        TF_AUTO_APPLY  = 'false'
+        TF_AUTO_APPLY  = 'true'
         PATH           = "D:\\Devops\\bin;C:\\Program Files\\Microsoft SDKs\\Azure\\CLI2\\wbin;${env.PATH}"
     }
 
