@@ -118,10 +118,7 @@ pipeline {
 
         stage('Deploy: Azure App Service') {
             when {
-                allOf {
-                    branch 'main'
-                    environment name: 'TF_AUTO_APPLY', value: 'true'
-                }
+                environment name: 'TF_AUTO_APPLY', value: 'true'
             }
             steps {
                 echo 'Deploying to Azure App Service...'
